@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Candy Crush.Game</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-image: linear-gradient(to bottom, #87cefa, #1e90ff);
+        background-image: url("img/Gambar.JPG");
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        color: rgb(0, 0, 0);
+      }
+      #game-container {
+        background-color: rgba(129, 154, 219, 0.7);
+        border-radius: 130px;
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #game-board {
+        display: grid;
+        grid-template-columns: repeat(7, 80px);
+        gap: 10px;
+      }
+
+      .cell {
+        width: 80px;
+        height: 80px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 32px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: transform 0.3s ease-in-out;
+        position: relative;
+      }
+
+      .cell.removed {
+        transform: scale(0);
+        opacity: 0;
+      }
+
+      .cell.selected {
+        border: 3px solid yellow;
+      }
+
+      #title {
+        text-align: center;
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+
+      #highscore {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <h1 id="title">Candy Crush</h1>
+      <div id="game-board"></div>
+      <div id="highscore">Highscore: <span id="highscore-value">0</span></div>
+      <audio autoplay loop>
+        <source src="music/Backsound Game Candy Crush.mp3" type="audio/mpeg" />
+      </audio>
+    </div>
+
+    <script>
+      const gameBoard = document.getElementById("game-board");
+      const highscoreElement = document.getElementById("highscore-value");
+      let selectedCell = null;
+      let score = 0;
+      let highscore = 0;
+      let matchedCells = [];
+
+      function createGameBoard() {
+        for (let i = 0; i < 5; i++) {
+          for (let j = 0; j < 7; j++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.innerHTML = getEmojiByColor(getRandomColor());
+            cell.addEventListener("click", () => handleCellClick(i, j));
+            gameBoard.appendChild(cell);
+          }
+        }
+      }
+
+      function handleCellClick(row, col) {
+        const clickedCell = getCell(row, col);
+
+        if (!selectedCell) {
+          selectedCell = clickedCell;
+          selectedCell.classList.add("selected");
+        } else {
+          if (areAdjacentCells(selectedCell, clickedCell)) {
+            swapCells(selectedCell, clickedCell);
+            checkAndRemoveMatches();
+            selectedCell.classList.remove("selected");
+            selectedCell = null;
+          } else {
+            selectedCell.classList.remove("selected");
+            selectedCell = clickedCell;
+            selectedCell.classList.add("selected");
+          }
+        }
+      }
+
+      function areAdjacentCells(cell1, cell2) {
+        const cell1Index = Array.from(cell1.parentNode.children).indexOf(cell1);
+        const cell2Index = Array.from(cell2.parentNode.children).indexOf(cell2);
+
+        return (
+          Math.abs(cell1Index - cell2Index) === 1 ||
+          Math.abs(cell1Index - cell2Index) === 7
+        );
+      }
+
+      function getCell(row, col) {
+        return gameBoard.children[row * 7 + col];
+      }
+
+      function swapCells(cell1, cell2) {
+        const tempHTML = cell1.innerHTML;
+        cell1.innerHTML = cell2.innerHTML;
+        cell2.innerHTML = tempHTML;
+      }
+
+      function getEmojiByColor(color) {
+        switch (color) {
+          case "red":
+            return "🍎";
+          case "blue":
+            return "🍥";
+          case "green":
+            return "🥑";
+          case "yellow":
+            return "🍌";
+          case "purple":
+            return "🍇";
+          case "orange":
+            return "🍊";
+        }
+      }
+
+      function getRandomColor() {
+        const colors = ["red", "blue", "green", "yellow", "purple", "orange"];
+        return colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      function checkAndRemoveMatches() {
+        const cells = gameBoard.children;
+        let matched = false;
+
+        for (let i = 0; i < cells.length - 2; i++) {
+          const horizontalMatches = getHorizontalMatches(i);
+          if (horizontalMatches.length >= 3) {
+            matched = true;
+            matchedCells = matchedCells.concat(horizontalMatches);
+          }
+        }
+
+        for (let i = 0; i < cells.length - 2; i++) {
+          const verticalMatches = getVerticalMatches(i);
+          if (verticalMatches.length >= 3) {
+            matched = true;
+            matchedCells = matchedCells.concat(verticalMatches);
+          }
+        }
+
+        if (matched) {
+          removeMatchedCells(matchedCells);
+          updateScore();
+          updateHighscore();
+          matchedCells = [];
+        }
+      }
+
+      function getHorizontalMatches(index) {
+        const cells = gameBoard.children;
+        const matchedCells = [cells[index]];
+        let currentIndex = index + 1;
+
+        while (currentIndex < cells.length && currentIndex % 7 !== 0) {
+          const currentCell = cells[currentIndex];
+
+          if (
+            currentCell.textContent === matchedCells[0].textContent &&
+            currentCell.textContent !== ""
+          ) {
+            matchedCells.push(currentCell);
+            currentIndex++;
+          } else {
+            break;
+          }
+        }
+
+        return matchedCells;
+      }
+
+      function getVerticalMatches(index) {
+        const cells = gameBoard.children;
+        const matchedCells = [cells[index]];
+        let currentIndex = index + 7;
+
+        while (currentIndex < cells.length && currentIndex / 7 !== 0) {
+          const currentCell = cells[currentIndex];
+
+          if (
+            currentCell.textContent === matchedCells[0].textContent &&
+            currentCell.textContent !== ""
+          ) {
+            matchedCells.push(currentCell);
+            currentIndex += 7;
+          } else {
+            break;
+          }
+        }
+
+        return matchedCells;
+      }
+
+      function removeMatchedCells(matchedCells) {
+        matchedCells.forEach((cell) => {
+          cell.classList.add("removed");
+        });
+
+        setTimeout(() => {
+          matchedCells.forEach((cell) => {
+            cell.innerHTML = getEmojiByColor(getRandomColor());
+            cell.classList.remove("removed");
+          });
+        }, 300);
+      }
+
+      function updateScore() {
+        score += matchedCells.length * 10;
+      }
+
+      function updateHighscore() {
+        if (score > highscore) {
+          highscore = score;
+          highscoreElement.textContent = highscore;
+        }
+      }
+
+      createGameBoard();
+    </script>
+  </body>
+</html>
